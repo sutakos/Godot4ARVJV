@@ -1,14 +1,26 @@
-﻿namespace CoreGame;
+﻿using System.Collections;
+using System.Runtime.InteropServices;
+
+namespace CoreGame;
 
 public class GameManager
 {
     private int nbTour;
     private Plateau plateau;
+    private int COLUMNS = 7;
+    private int ROWS = 6;
+    private List<int> coupValide;
 
     public GameManager()
     {
         nbTour = 0;
-        plateau = new Plateau(7,6); // peut etre dire la taille du tableau pour faire des parties perso
+        plateau = new Plateau(COLUMNS,ROWS); // peut etre dire la taille du tableau pour faire des parties perso
+        coupValide = new List<int>();
+        for (int i = 0; i < COLUMNS; i++)
+        {
+            coupValide.Add(i);
+        }
+
     }
     // Le joueur 1 a l'id 1 et le joueur 2 a l'id 0
     private int calculeID()
@@ -57,42 +69,70 @@ public class GameManager
 
     private bool play(int id_player,int x)
     {
-        if (plateau.getPion(x, 0) != 2 || x>= plateau.getNbColumns() || x<0)
+        if (coupValide.Contains(x))
         {
-            // Colonne pleine || x trop élevé || x inférieur a 0
-            return false;
-        }
-        for(int i = plateau.getNbRows()-1;i>=0; i--)
-        {
-            int id_pion = plateau.getPion(x, i);
-            if (id_pion == 2)
+            for (int i = plateau.getNbRows() - 1; i >= 0; i--)
             {
-                // Si l'endroit est vide
-                plateau.setPion(id_player, x,i);
-                return true;
+                int id_pion = plateau.getPion(x, i);
+                if (id_pion == 2)
+                {
+                    // Si l'endroit est vide
+                    plateau.setPion(id_player, x, i);
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    public async Task tour(Func<Task<int>> demanderInput) // async pour pouvoir faire rejouer le joueur si coup invalide
+    public List<int> getCoupValide()
     {
-        int id_player = 0;
-        while (!isWin(id_player))
-        {
-            nbTour++;
-            id_player = calculeID();
-            Console.WriteLine($"Le joueur est : {id_player} il y a {nbTour} tour(s)");
+        return coupValide;
+    }
 
-            bool coupValide = false;
-            while (!coupValide)
-            {
-                int input = await demanderInput();  // demander une input console/godot
-                coupValide = play(id_player,input);
-            }
-            if (isWin(id_player))
-                Console.WriteLine($"Le gagnant est : {id_player} en {nbTour} tour(s)");
+    public List<float> getState()
+    {
+        int[,] tmp = plateau.getPlateau();
+        List<float> state = new List<float>();
+        foreach (int i in tmp)
+        {
+            state.Add(i);
         }
+        return state;
+    }
+
+    public int[,] getPlateau()
+    {
+        return plateau.getPlateau();
     }
     
+    public (bool,List<float>) tour(int coupJouer)
+    {
+        
+        int idPlayer = calculeID();
+        int colonne = coupJouer;
+        colonne--;
+        play(idPlayer, colonne);
+        nbTour++;
+        envoyerCoupPossible(ref coupValide);
+        return (isWin(idPlayer),getState());
+    }
+
+    public int getROWS()
+    {
+        return ROWS;
+    }
+
+    public int getCOLUMNS()
+    {
+        return COLUMNS;
+    }
+
+    public void envoyerCoupPossible(ref List<int> coupPosssible)
+    {
+        coupPosssible.RemoveAll(i =>
+            i < 0 ||
+            i >= plateau.getNbColumns() ||
+            plateau.getPion(i, 0) != 2);
+    }
 }

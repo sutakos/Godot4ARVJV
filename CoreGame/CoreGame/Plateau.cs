@@ -20,6 +20,10 @@ public class Plateau
         }
     }
 
+    public int[,] getPlateau()
+    {
+        return plateau;
+    }
     public int getNbRows()
     {
         return NB_ROWS;
